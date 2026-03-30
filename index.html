@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Audit how diverse your close social network really is, and what that means for how you process information. A free interactive tool by Matthew Facciani, PhD.">
+<title>Network Diversity Audit · Matthew Facciani, PhD</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f7f4ef;
+  --paper: #fffdf9;
+  --ink: #1c1917;
+  --ink-mid: #57534e;
+  --ink-light: #a8a29e;
+  --rule: #e7e2db;
+  --accent: #334155;
+  --green: #15803d;
+  --blue: #2563eb;
+  --amber: #b45309;
+  --red: #c2410c;
+}
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 44px 28px 72px; }
+@media (max-width: 600px) {
+  .wrap { padding: 24px 16px 80px; }
+  .ws-title { font-size: 26px; }
+  .ws-desc { font-size: 14px; }
+  .step-lbl { display: none; }
+  .step-lbl.active { display: block; font-size: 10px; }
+  .step-line { min-width: 8px; }
+  .section-title { font-size: 17px; }
+  .btn-row { flex-direction: column; }
+  .btn-row .btn { width: 100%; text-align: center; }
+  .score-card { grid-template-columns: auto 1fr; gap: 14px; padding: 16px; }
+  .score-big { font-size: 42px; }
+  .alter-grid { grid-template-columns: 1fr; }
+}
+.ws-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 10px; }
+.ws-title { font-family: Georgia, serif; font-size: 34px; line-height: 1.15; color: var(--ink); margin-bottom: 10px; }
+.ws-title em { font-style: italic; color: var(--ink-mid); }
+.ws-desc { font-size: 15px; font-weight: 300; color: var(--ink-mid); line-height: 1.7; max-width: 560px; }
+.header-rule { border: none; border-top: 1.5px solid var(--ink); margin: 18px 0 32px; }
+.step-bar { display: flex; align-items: center; gap: 0; margin-bottom: 32px; }
+.step-item { display: flex; align-items: center; gap: 8px; }
+.step-num { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--rule); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--ink-light); background: var(--paper); flex-shrink: 0; transition: all 0.3s; }
+.step-num.active { border-color: var(--ink); background: var(--ink); color: white; }
+.step-num.done { border-color: var(--ink-mid); background: var(--ink-mid); color: white; }
+.step-lbl { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); white-space: nowrap; }
+.step-lbl.active { color: var(--ink); }
+.step-line { flex: 1; height: 1px; background: var(--rule); margin: 0 10px; }
+.panel { display: none; }
+.panel.active { display: block; animation: rise 0.35s ease both; }
+@keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.section-title { font-family: Georgia, serif; font-size: 20px; margin-bottom: 6px; }
+.section-body { font-size: 14px; font-weight: 300; color: var(--ink-mid); line-height: 1.7; margin-bottom: 22px; }
+.hint-box { font-size: 13px; color: var(--ink-mid); font-style: italic; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px; margin-bottom: 20px; line-height: 1.6; }
+.btn { display: inline-block; padding: 12px 26px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; }
+.btn-dark { background: var(--ink); color: var(--bg); }
+.btn-dark:hover { background: #2c2825; }
+.btn-dark:disabled { background: var(--rule); color: var(--ink-light); cursor: not-allowed; }
+.btn-ghost { background: transparent; border: 1.5px solid var(--rule); color: var(--ink-mid); }
+.btn-ghost:hover { border-color: var(--ink-mid); color: var(--ink); }
+.btn-share { background: #1d9bf0; color: white; border: none; }
+.btn-share:hover { background: #1a8cd8; }
+.btn-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+
+/* Name generator */
+.alter-list { margin-bottom: 20px; }
+.alter-card { background: var(--paper); border: 1.5px solid var(--rule); border-radius: 10px; padding: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
+.alter-card.filled { border-color: var(--accent); }
+.alter-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.alter-num { width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--rule); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--ink-light); flex-shrink: 0; }
+.alter-card.filled .alter-num { background: var(--accent); border-color: var(--accent); color: white; }
+.alter-name-input { flex: 1; padding: 8px 14px; border: 1.5px solid var(--rule); border-radius: 6px; background: var(--bg); font-family: system-ui, sans-serif; font-size: 14px; color: var(--ink); outline: none; }
+.alter-name-input:focus { border-color: var(--ink-mid); background: var(--paper); }
+.alter-name-input::placeholder { color: var(--ink-light); font-style: italic; }
+.alter-questions { display: none; }
+.alter-card.filled .alter-questions { display: block; }
+.alter-q { margin-bottom: 14px; }
+.alter-q-label { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
+.alter-q-label span { font-weight: 300; color: var(--ink-mid); }
+.slider-wrap { margin-top: 6px; padding: 0 2px; }
+.slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-light); margin-bottom: 6px; }
+.belief-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 3px; background: linear-gradient(to right, var(--ink), var(--rule)); outline: none; cursor: pointer; }
+.belief-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); cursor: pointer; border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.25); transition: background 0.15s; }
+.belief-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); cursor: pointer; border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.belief-slider::-webkit-slider-thumb:hover { background: var(--accent); }
+.slider-val { font-size: 12px; font-weight: 600; color: var(--ink-mid); text-align: center; margin-top: 6px; }
+.tally-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; margin: 18px 0 6px; }
+.tally-txt { font-size: 13px; color: var(--ink-mid); }
+.tally-num { font-family: Georgia, serif; font-size: 22px; }
+.add-alter-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1.5px dashed var(--rule); border-radius: 8px; background: transparent; font-size: 13px; color: var(--ink-mid); cursor: pointer; width: 100%; justify-content: center; transition: all 0.2s; margin-bottom: 16px; }
+.add-alter-btn:hover { border-color: var(--ink-mid); color: var(--ink); }
+
+/* Social media panel */
+.platform-chip { padding: 7px 14px; border-radius: 100px; border: 1.5px dashed var(--rule); background: var(--paper); font-size: 13px; color: var(--ink-mid); cursor: pointer; transition: all 0.18s; user-select: none; }
+.platform-chip:hover { border-color: var(--ink-mid); color: var(--ink); }
+.platform-chip.sel { background: var(--accent); color: white; border-style: solid; border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.custom-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.custom-input { flex: 1; padding: 8px 14px; border: 1.5px solid var(--rule); border-radius: 100px; background: var(--paper); font-family: system-ui, sans-serif; font-size: 13px; color: var(--ink); outline: none; }
+.custom-input:focus { border-color: var(--ink-mid); }
+.custom-input::placeholder { color: var(--ink-light); }
+.custom-add { padding: 8px 14px; border-radius: 100px; border: 1.5px solid var(--rule); background: var(--paper); font-size: 13px; font-weight: 500; color: var(--ink-mid); cursor: pointer; }
+.custom-add:hover { border-color: var(--ink); color: var(--ink); }
+.feed-q { margin-bottom: 20px; }
+.feed-q-label { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 10px; }
+.feed-q-sub { font-size: 12px; font-weight: 300; color: var(--ink-mid); margin-bottom: 10px; line-height: 1.5; }
+.diversity-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.div-btn { padding: 8px 16px; border-radius: 6px; border: 1.5px solid var(--rule); background: white; font-size: 13px; color: var(--ink-mid); cursor: pointer; transition: all 0.15s; }
+.div-btn:hover { border-color: var(--ink-mid); }
+.div-btn.sel { color: white; border-color: transparent; }
+.div-btn.sel-high { background: var(--green); }
+.div-btn.sel-mod { background: var(--blue); }
+.div-btn.sel-low { background: var(--amber); }
+.div-btn.sel-none { background: var(--red); }
+
+/* Results */
+.score-card { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start; padding: 22px; border: 1.5px solid var(--rule); border-radius: 10px; background: var(--paper); margin-bottom: 20px; }
+.score-big { font-family: Georgia, serif; font-size: 56px; line-height: 1; }
+.score-meta-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 4px; }
+.score-level { font-family: Georgia, serif; font-size: 20px; margin-bottom: 8px; }
+.score-desc { font-size: 14px; line-height: 1.6; color: var(--ink-mid); }
+.dimension-card { border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px; background: var(--paper); margin-bottom: 12px; }
+.dim-title { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 10px; }
+.dim-bar-wrap { display: flex; align-items: center; gap: 12px; }
+.dim-bar-bg { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.dim-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.dim-val { font-size: 12px; color: var(--ink-light); font-style: italic; white-space: nowrap; }
+.research-callout { padding: 18px 20px; border-left: 3px solid var(--ink); background: #f0ece4; border-radius: 0 8px 8px 0; margin-bottom: 22px; }
+.rc-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 6px; }
+.rc-text { font-size: 14px; line-height: 1.7; color: var(--ink-mid); }
+.rc-text strong { color: var(--ink); }
+.rq { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.rq:last-child { border-bottom: none; }
+.rq-q { font-size: 14px; font-weight: 500; margin-bottom: 8px; line-height: 1.5; }
+.rq-input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--rule); border-radius: 6px; background: var(--bg); font-family: system-ui, sans-serif; font-size: 13px; color: var(--ink); resize: none; min-height: 60px; outline: none; line-height: 1.5; }
+.rq-input:focus { border-color: var(--ink-mid); background: var(--paper); }
+.rq-input::placeholder { color: var(--ink-light); font-style: italic; }
+.restart-row { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--rule); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.restart-note { font-size: 12px; font-style: italic; color: var(--ink-light); }
+.site-footer { max-width: 720px; margin: 0 auto; padding: 20px 28px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--rule); }
+.footer-credit { font-size: 12px; color: var(--ink-light); line-height: 1.6; }
+.footer-credit a { color: var(--ink-mid); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.footer-credit a:hover { color: var(--ink); border-color: var(--ink-mid); }
+.footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+.footer-link { font-size: 12px; font-weight: 500; color: var(--ink-mid); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.footer-link:hover { color: var(--ink); border-color: var(--ink); }
+.amp-callout { border: 1px dashed var(--rule); border-radius: 8px; padding: 16px 18px; background: var(--paper); margin-bottom: 20px; }
+.amp-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 12px; }
+.amp-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+.amp-row:last-of-type { border-bottom: none; }
+.amp-platform { font-weight: 600; min-width: 120px; color: var(--ink); }
+.amp-arrow { color: var(--ink-light); }
+.amp-val { color: var(--ink-mid); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="ws-eyebrow">Interactive Worksheet</div>
+<h1 class="ws-title">Your <em>Network Diversity Audit</em></h1>
+<hr class="header-rule">
+<p class="ws-desc">Who you talk to shapes what you believe. Research shows that the people you discuss important matters with, your close ties, have significant influence on your beliefs. This tool helps you assess how diverse those relationships are and what that may mean for how you process information. Next, we will address social media feeds.</p>
+<div style="margin-top:14px;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:12px;color:var(--ink-light);line-height:1.6;">
+  <strong style="color:var(--ink-mid)">For reflection and educational purposes only.</strong> Scores are rough estimates meant to prompt thinking, not precise measurements. Think of this as a mirror, not a diagnostic tool. No data is collected unless you choose to share it.
+</div>
+<div style="height:28px"></div>
+
+<div class="step-bar">
+  <div class="step-item"><div class="step-num active" id="sn1">1</div><span class="step-lbl active" id="sl1">Your Network</span></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num" id="sn2">2</div><span class="step-lbl" id="sl2">Beliefs</span></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num" id="sn3">3</div><span class="step-lbl" id="sl3">Your Feeds</span></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num" id="sn4">4</div><span class="step-lbl" id="sl4">Reflect</span></div>
+</div>
+
+<!-- PANEL 1: Name Generator -->
+<div class="panel active" id="panel1">
+  <div class="section-title">Who do you discuss important matters with?</div>
+  <p class="section-body">Think about the people in your life you'd turn to for a meaningful conversation or advice about something important: friends, family, colleagues, mentors. List up to 6 names.</p>
+  <div class="hint-box">💡 Don't overthink the names, go with whoever comes to mind first to determine your inner circle. I don't collect data here, but feel free to use pseudonyms or initials.</div>
+  <div class="alter-list" id="alter-list"></div>
+  <button class="add-alter-btn" id="add-alter-btn">+ Add another person</button>
+  <div class="tally-bar">
+    <span class="tally-txt">People added</span>
+    <span class="tally-num" id="alter-tally">0</span>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-dark" id="to-p2" disabled>Next: Rate Their Beliefs →</button>
+  </div>
+</div>
+
+<!-- PANEL 2: Belief Ratings -->
+<div class="panel" id="panel2">
+  <div class="section-title">How do their beliefs compare to yours?</div>
+  <p class="section-body">For each person, rate how similar their beliefs are to yours across two dimensions. You don't need to know exactly, go with your best sense.</p>
+  <div class="hint-box">💡 Research shows that even <strong>one person</strong> with different views in your close network can meaningfully reduce belief extremity. Small differences matter.</div>
+  <div id="belief-ratings"></div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" onclick="goTo(1)">← Back</button>
+    <button class="btn btn-dark" onclick="goTo(3)">Next: Your Feeds →</button>
+  </div>
+</div>
+
+<!-- PANEL 3: Social Media -->
+<div class="panel" id="panel3">
+  <div class="section-title">How diverse are your social media feeds?</div>
+  <p class="section-body">Your close network is your most important influence, but your feeds add another layer. For each platform you use, rate how often you encounter viewpoints different from your own.</p>
+  <div class="hint-box">💡 Think about what the algorithm actually surfaces for you. A feed that mostly shows one perspective, even if it's the opposite of yours, still limits your exposure to a genuine range of viewpoints.</div>
+  <div id="feed-area"></div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" onclick="goTo(2)">← Back</button>
+    <button class="btn btn-dark" onclick="goTo(4)">See My Results →</button>
+  </div>
+</div>
+
+<!-- PANEL 4: Results -->
+<div class="panel" id="panel4">
+  <div class="section-title">What your network reveals</div>
+  <div id="results-score"></div>
+  <div id="dimension-breakdown"></div>
+  <div class="amp-callout" id="feed-summary"></div>
+  <div class="research-callout">
+    <div class="rc-eyebrow">Evidence-Based Insights: Facciani &amp; Brashears (2019); Facciani &amp; Traberg (2024); Bail et al. (2018)</div>
+    <p class="rc-text">Research shows that the people you discuss important matters with have a strong influence on your beliefs. When your close ties share the same political or religious views, those beliefs get reinforced through what sociologists call a <em>plausibility structure</em>: the more your inner circle agrees, the more certain you feel, even when a belief may be inaccurate. Importantly, having even <strong>one person</strong> with different views in your close network is linked to less extreme beliefs. Small differences matter.<br><br>Research on how feeds shape beliefs is more mixed. Social media can reinforce existing identities through "reinforcing spirals" : we seek affirming content, and algorithms amplify it. But exposure to opposing views alone doesn't always reduce bias. In one study, people paid to follow opposing political accounts became more polarized, not less : passive exposure can strengthen identity rather than broaden perspective. What matters most is the quality of engagement. These feed ratings are meant to prompt reflection, not to imply that a higher score automatically makes you more resilient.</p>
+  </div>
+  <div id="reflect-qs"></div>
+  <div style="margin-top:8px;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:13px;color:var(--ink-mid);line-height:1.7;">
+    💬 Want to learn how to have more productive conversations across difference? <a href="https://cup.columbia.edu/book/misguided/9780231205054" target="_blank" style="color:var(--ink);font-weight:600;text-decoration:underline;">Explore more in <em>Misguided</em> →</a>
+  </div>
+  <div class="restart-row">
+    <button class="btn btn-dark" onclick="exportReflections()">📋 Copy My Responses</button>
+    <button class="btn btn-share btn" onclick="shareScore()">🔗 Share My Score</button>
+    <button class="btn btn-ghost" onclick="goTo(3)">← Back</button>
+    <button class="btn btn-ghost" onclick="restart()">↺ Start Over</button>
+    <span class="restart-note">Try adding different people to see how your score changes.</span>
+  </div>
+  <div style="margin-top:18px;padding:14px 16px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);font-size:13px;color:var(--ink-mid);line-height:1.7;">
+    🔒 <strong style="color:var(--ink)">Your data stays on your device.</strong> This tool does not collect or store any of your responses. If you'd like to voluntarily share your score and feedback to help improve future versions, you can do so here: <a href="https://docs.google.com/forms/d/e/1FAIpQLSfbES14qgsqSU3MErNxgqCIXPSO1DL__JPpi1ghMUkexjWXuQ/viewform?usp=publish-editor" target="_blank" style="color:var(--ink);font-weight:600;text-decoration:underline;">Share my score &amp; feedback →</a>
+  </div>
+  <div style="margin-top:14px;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:13px;color:var(--ink-mid);line-height:1.7;">
+    🗺️ Want to see the full picture? <strong><a href="https://matthewfacciani.github.io/identity-map" target="_blank" style="color:var(--ink);text-decoration:underline;">Map your social identities next →</a></strong> and explore how your identity complexity and network diversity compare.
+  </div>
+</div>
+
+</div>
+
+<div class="site-footer">
+  <div class="footer-credit">
+    Created by <a href="https://www.matthewfacciani.com" target="_blank">Matthew Facciani, PhD</a>
+  </div>
+  <div class="footer-links">
+    <a class="footer-link" href="https://matthewfacciani.substack.com" target="_blank">📬 Misguided the Newsletter</a>
+    <a class="footer-link" href="https://cup.columbia.edu/book/misguided/9780231205054" target="_blank">📖 Learn more in my book</a>
+  </div>
+</div>
+
+<script>
+// State
+let alters = []; // {name, politics, religion}
+let selectedPlatforms = {}; // {platformId: diversityLevel}
+
+const PLATFORMS = [
+  {id:'twitter', name:'Twitter / X', icon:'𝕏'},
+  {id:'bluesky', name:'Bluesky', icon:'🦋'},
+  {id:'threads', name:'Threads', icon:'🧵'},
+  {id:'instagram', name:'Instagram', icon:'📷'},
+  {id:'tiktok', name:'TikTok', icon:'🎵'},
+  {id:'facebook', name:'Facebook', icon:'📘'},
+  {id:'reddit', name:'Reddit', icon:'🟠'},
+  {id:'youtube', name:'YouTube', icon:'▶'},
+  {id:'podcasts', name:'Podcasts', icon:'🎙'},
+  {id:'substack', name:'Newsletters', icon:'📩'},
+  {id:'cablenews', name:'Cable News / TV', icon:'📺'},
+  {id:'linkedin', name:'LinkedIn', icon:'💼'},
+];
+
+const DIMENSIONS = [
+  {key:'politics', label:'Political views', sub:'Do they lean the same political direction as you?'},
+  {key:'religion', label:'Religious or spiritual beliefs', sub:'Do they share similar religious or worldview beliefs?'},
+];
+
+// Build panel 1
+function buildPanel1() {
+  const list = document.getElementById('alter-list');
+  list.innerHTML = '';
+  alters.forEach((a, i) => renderAlterCard(i));
+  updateTally();
+  updateP2Btn();
+}
+
+function renderAlterCard(i) {
+  const list = document.getElementById('alter-list');
+  const a = alters[i];
+  const div = document.createElement('div');
+  div.className = 'alter-card' + (a.name ? ' filled' : '');
+  div.id = 'alter-' + i;
+  div.innerHTML = `
+    <div class="alter-header">
+      <div class="alter-num">${i+1}</div>
+      <input class="alter-name-input" placeholder="First name or nickname…" value="${a.name || ''}" oninput="updateAlterName(${i}, this.value)" />
+    </div>
+    <div class="alter-questions" id="alter-qs-${i}">
+      <p style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:12px;line-height:1.5;">Rate how similar <strong style="color:var(--ink-mid)">${a.name || 'this person'}'s</strong> beliefs are to yours:</p>
+      ${DIMENSIONS.map(d => {
+        const val = a[d.key] || 3;
+        const labels = ['','Almost identical','Slightly different','Somewhat different','Noticeably different','Very different'];
+        return `<div class="alter-q">
+          <div class="alter-q-label">${d.label} <span>— ${d.sub}</span></div>
+          <div class="slider-wrap">
+            <div class="slider-labels"><span>Same beliefs</span><span>Very different</span></div>
+            <input type="range" class="belief-slider" min="1" max="5" value="${val}" oninput="setBeliefSlider(${i},'${d.key}',+this.value,this)" />
+            <div class="slider-val" id="sv-${i}-${d.key}">${labels[val]}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  list.appendChild(div);
+}
+
+function updateAlterName(i, val) {
+  alters[i].name = val.trim();
+  const card = document.getElementById('alter-' + i);
+  card.classList.toggle('filled', !!val.trim());
+  // Update label in questions
+  const lbl = card.querySelector('.alter-questions p strong');
+  if (lbl) lbl.textContent = val.trim() || 'this person';
+  updateTally();
+  updateP2Btn();
+}
+
+function setBeliefSlider(i, dim, val, input) {
+  alters[i][dim] = val;
+  const labels = ['','Almost identical','Slightly different','Somewhat different','Noticeably different','Very different'];
+  const lbl = document.getElementById('sv-' + i + '-' + dim);
+  if (lbl) lbl.textContent = labels[val];
+  // Update slider gradient
+  const pct = ((val - 1) / 4) * 100;
+  input.style.background = `linear-gradient(to right, var(--ink) ${pct}%, var(--rule) ${pct}%)`;
+}
+
+function updateTally() {
+  const filled = alters.filter(a => a.name).length;
+  document.getElementById('alter-tally').textContent = filled;
+}
+
+function updateP2Btn() {
+  const filled = alters.filter(a => a.name).length;
+  document.getElementById('to-p2').disabled = filled < 1;
+}
+
+document.getElementById('add-alter-btn').addEventListener('click', () => {
+  if (alters.length >= 6) return;
+  alters.push({name:'', politics:3, religion:3});
+  renderAlterCard(alters.length - 1);
+  updateTally();
+  if (alters.length >= 6) document.getElementById('add-alter-btn').style.display = 'none';
+});
+
+document.getElementById('to-p2').addEventListener('click', () => goTo(2));
+
+// Panel 2: belief ratings with sliders
+function buildPanel2() {
+  const container = document.getElementById('belief-ratings');
+  container.innerHTML = '';
+  const named = alters.filter(a => a.name);
+  const labels = ['','Almost identical','Slightly different','Somewhat different','Noticeably different','Very different'];
+  named.forEach((a, i) => {
+    const idx = alters.indexOf(a);
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--paper);border:1.5px solid var(--rule);border-radius:10px;padding:16px;margin-bottom:14px;';
+    div.innerHTML = `
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</span>
+        ${a.name}
+      </div>
+      ${DIMENSIONS.map(d => {
+        const val = a[d.key] || 3;
+        const pct = ((val-1)/4)*100;
+        return `<div class="alter-q">
+          <div class="alter-q-label">${d.label} <span>— ${d.sub}</span></div>
+          <div class="slider-wrap">
+            <div class="slider-labels"><span>Same beliefs</span><span>Very different</span></div>
+            <input type="range" class="belief-slider" min="1" max="5" value="${val}"
+              style="background:linear-gradient(to right,var(--ink) ${pct}%,var(--rule) ${pct}%)"
+              oninput="setBeliefSliderP2(${idx},'${d.key}',+this.value,this)" />
+            <div class="slider-val" id="svp2-${idx}-${d.key}">${labels[val]}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function setBeliefSliderP2(i, dim, val, input) {
+  alters[i][dim] = val;
+  const labels = ['','Almost identical','Slightly different','Somewhat different','Noticeably different','Very different'];
+  const lbl = document.getElementById('svp2-' + i + '-' + dim);
+  if (lbl) lbl.textContent = labels[val];
+  const pct = ((val-1)/4)*100;
+  input.style.background = `linear-gradient(to right,var(--ink) ${pct}%,var(--rule) ${pct}%)`;
+}
+
+// Panel 3: Social media feeds
+function buildPanel3() {
+  const area = document.getElementById('feed-area');
+  area.innerHTML = '';
+
+  // Platform selector
+  const chipWrap = document.createElement('div');
+  chipWrap.innerHTML = '<div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:10px;">Which platforms do you use?</div>';
+  const chips = document.createElement('div');
+  chips.className = 'chips';
+  PLATFORMS.forEach(p => {
+    const c = document.createElement('button');
+    c.className = 'platform-chip' + (selectedPlatforms[p.id] !== undefined ? ' sel' : '');
+    c.textContent = p.icon + ' ' + p.name;
+    c.onclick = () => {
+      if (selectedPlatforms[p.id] !== undefined) {
+        delete selectedPlatforms[p.id];
+        c.classList.remove('sel');
+        const card = document.getElementById('feed-card-' + p.id);
+        if (card) card.remove();
+      } else {
+        selectedPlatforms[p.id] = null;
+        c.classList.add('sel');
+        renderFeedCard(p, area);
+      }
+    };
+    chips.appendChild(c);
+  });
+  chipWrap.appendChild(chips);
+
+  // Custom platform
+  const customRow = document.createElement('div');
+  customRow.className = 'custom-row';
+  const inp = document.createElement('input');
+  inp.className = 'custom-input';
+  inp.placeholder = 'Add another platform…';
+  const addBtn = document.createElement('button');
+  addBtn.className = 'custom-add';
+  addBtn.textContent = '+ Add';
+  addBtn.onclick = () => {
+    const v = inp.value.trim(); if (!v) return;
+    const pid = 'custom_' + v.toLowerCase().replace(/\W/g,'_');
+    const p = {id: pid, name: v, icon: '📱'};
+    PLATFORMS.push(p);
+    selectedPlatforms[pid] = null;
+    const c = document.createElement('button');
+    c.className = 'platform-chip sel';
+    c.textContent = p.icon + ' ' + p.name;
+    c.onclick = () => {
+      delete selectedPlatforms[pid];
+      c.classList.remove('sel');
+      const card = document.getElementById('feed-card-' + pid);
+      if (card) card.remove();
+    };
+    chips.appendChild(c);
+    renderFeedCard(p, area);
+    inp.value = '';
+  };
+  inp.onkeydown = e => { if (e.key === 'Enter') addBtn.click(); };
+  customRow.append(inp, addBtn);
+  chipWrap.appendChild(customRow);
+  area.appendChild(chipWrap);
+
+  // Render existing selections
+  Object.keys(selectedPlatforms).forEach(pid => {
+    const p = PLATFORMS.find(x => x.id === pid);
+    if (p && !document.getElementById('feed-card-' + pid)) renderFeedCard(p, area);
+  });
+}
+
+function renderFeedCard(p, container) {
+  const div = document.createElement('div');
+  div.id = 'feed-card-' + p.id;
+  div.className = 'alter-card filled';
+  div.style.cssText = 'background:var(--paper);border:1.5px solid var(--rule);border-radius:10px;padding:16px;margin-bottom:12px;';
+  const val = selectedPlatforms[p.id] || 3;
+  const pct = ((val-1)/4)*100;
+  const labels = ['','Never','Rarely','Sometimes','Often','Very often'];
+  div.innerHTML = `
+    <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${p.icon}</span>
+      ${p.name}
+    </div>
+    <div class="alter-q">
+      <div class="alter-q-label">How often does this feed expose you to viewpoints that are different than your own? <span>— Think about what the algorithm shows you, not just who you follow.</span></div>
+      <div class="slider-wrap">
+        <div class="slider-labels"><span>Never</span><span>Very often</span></div>
+        <input type="range" class="belief-slider" min="1" max="5" value="${val}"
+          style="background:linear-gradient(to right,var(--ink) ${pct}%,var(--rule) ${pct}%)"
+          oninput="setFeedSlider('${p.id}',+this.value,this)" />
+        <div class="slider-val" id="fsv-${p.id}">${labels[val]}</div>
+      </div>
+    </div>`;
+  container.appendChild(div);
+}
+
+function setFeedSlider(pid, val, input) {
+  selectedPlatforms[pid] = val;
+  const labels = ['','Never','Rarely','Sometimes','Often','Very often'];
+  const lbl = document.getElementById('fsv-' + pid);
+  if (lbl) lbl.textContent = labels[val];
+  const pct = ((val-1)/4)*100;
+  input.style.background = `linear-gradient(to right,var(--ink) ${pct}%,var(--rule) ${pct}%)`;
+}
+
+// Results
+function buildResults() {
+  const named = alters.filter(a => a.name);
+  if (!named.length) return;
+
+  // Calculate dimension scores from 1-5 slider values
+  // 1=almost identical(0%), 2=slightly diff(25%), 3=somewhat diff(50%), 4=noticeably diff(75%), 5=very diff(100%)
+  // +15 bonus per dimension if at least one person scores 4 or 5 (sacred umbrella effect)
+  const dimScores = {};
+  DIMENSIONS.forEach(d => {
+    let total = 0, sum = 0;
+    named.forEach(a => {
+      const val = a[d.key] || 3;
+      sum += ((val - 1) / 4) * 100;
+      total++;
+    });
+    let score = total > 0 ? Math.round(sum / total) : 50;
+    const hasVeryDiverse = named.some(a => (a[d.key] || 3) >= 5);
+    const hasNotiDiverse = named.some(a => (a[d.key] || 3) >= 4);
+    if (hasVeryDiverse) score = Math.min(100, score + 15);
+    else if (hasNotiDiverse) score = Math.min(100, score + 10);
+    dimScores[d.key] = score;
+  });
+
+  // Network diversity score (average of dimensions, weighted)
+  const networkScore = Math.round((dimScores.politics + dimScores.religion) / 2);
+
+  // Feed score from 1-5 sliders (1=very one-sided=0%, 5=very diverse=100%)
+  const feedVals = Object.values(selectedPlatforms).filter(v => v !== null && typeof v === 'number');
+  let feedScore = 50;
+  if (feedVals.length) {
+    feedScore = Math.round(feedVals.reduce((s, v) => s + ((v - 1) / 4) * 100, 0) / feedVals.length);
+  }
+
+  // Combined score
+  const combined = Math.round(networkScore * 0.7 + feedScore * 0.3);
+
+  // Level
+  let level, color, desc;
+  if (combined >= 70) {
+    level = 'High Diversity'; color = '#15803d';
+    desc = 'Your close network includes people with meaningfully different political and religious beliefs. Research suggests this kind of diversity is associated with more open information processing and less extreme belief commitment.';
+  } else if (combined >= 45) {
+    level = 'Moderate Diversity'; color = '#2563eb';
+    desc = 'Your network has some diversity, but your political or religious beliefs may be more homogeneous than others. You likely have some natural checks on belief extremity, but there may be areas where your inner circle is reinforcing a single perspective.';
+  } else if (combined >= 20) {
+    level = 'Low Diversity'; color = '#b45309';
+    desc = 'Most of your close ties share similar political and religious beliefs to yours. Research suggests this kind of homogeneity can strengthen belief commitment and make you more susceptible to information that confirms your worldview.';
+  } else {
+    level = 'Very Low Diversity'; color = '#c2410c';
+    desc = 'Your inner circle appears to share very similar political and religious beliefs to yours. This creates a strong plausibility structure: your beliefs are reinforced from multiple directions, which can make it harder to evaluate disconfirming information.';
+  }
+
+  // Render score card
+  document.getElementById('results-score').innerHTML = `
+    <div class="score-card">
+      <div class="score-big" style="color:${color}">${combined}</div>
+      <div>
+        <div class="score-meta-lbl">Network Diversity Score</div>
+        <div class="score-level" style="color:${color}">${level}</div>
+        <div class="score-desc">${desc}</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:20px;line-height:1.6;">This score reflects self-reported belief similarity across your close ties, not a diagnostic.</p>`;
+
+  // Dimension breakdown
+  const dimColors = {politics: '#c2410c', religion: '#0369a1'};
+  const dimLabels = {politics: 'Political Views', religion: 'Religious/Spiritual Beliefs'};
+  let dimHtml = '<div style="margin-bottom:20px;">';
+  DIMENSIONS.forEach(d => {
+    const pct = dimScores[d.key];
+    const col = pct >= 60 ? '#15803d' : pct >= 35 ? '#2563eb' : '#b45309';
+    dimHtml += `
+      <div class="dimension-card">
+        <div class="dim-title">${dimLabels[d.key]}</div>
+        <div class="dim-bar-wrap">
+          <div class="dim-bar-bg"><div class="dim-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+          <div class="dim-val">${pct}% diverse</div>
+        </div>
+      </div>`;
+  });
+  dimHtml += '</div>';
+  document.getElementById('dimension-breakdown').innerHTML = dimHtml;
+
+  // Feed summary
+  const platformEntries = Object.entries(selectedPlatforms).filter(([,v]) => v !== null && typeof v === 'number');
+  let feedHtml = '<div class="amp-label">How Often Your Feeds Show Different Viewpoints</div>';
+  if (!platformEntries.length) {
+    feedHtml += '<div style="font-size:13px;color:var(--ink-light);font-style:italic">No platforms configured.</div>';
+  } else {
+    const labelMap = ['','Never','Rarely','Sometimes','Often','Very often'];
+    const colorMap = ['','#c2410c','#b45309','#2563eb','#2563eb','#15803d'];
+    platformEntries.forEach(([pid, val]) => {
+      const p = PLATFORMS.find(x => x.id === pid);
+      if (!p) return;
+      feedHtml += `<div class="amp-row"><span class="amp-platform">${p.icon} ${p.name}</span><span class="amp-arrow">→</span><span class="amp-val" style="color:${colorMap[val]||'var(--ink-mid)'};font-weight:500">${labelMap[val]||''}</span></div>`;
+    });
+  }
+  document.getElementById('feed-summary').innerHTML = feedHtml;
+
+  // Reflection questions
+  const politicsScore = dimScores.politics || 0;
+  const religionScore = dimScores.religion || 0;
+  const mostSimilarDim = politicsScore <= religionScore ? DIMENSIONS[0] : DIMENSIONS[1];
+  const tiedDims = Math.abs(politicsScore - religionScore) < 5;
+  const qs = [
+    {q: tiedDims ? `Your network shows similar diversity across both political and religious beliefs. Think about one area where you hold a belief with confidence. Have you ever had a meaningful conversation with someone close to you who sees it differently, and if so, what happened?` : `Your network is least diverse on <strong>${dimLabels[mostSimilarDim.key].toLowerCase()}</strong>. Think about a belief in this area that you hold with confidence. Have you ever had a meaningful conversation with someone close to you who sees it differently, and if so, what happened?`, ph: 'e.g. I realized I had never actually discussed this with someone who disagreed...'},
+    {q: 'Research suggests that even <strong>one person</strong> with different views in your close network can meaningfully reduce belief extremity. Is there already someone like that in your life, and how often do you actually talk with them about things that matter?', ph: 'e.g. I have a colleague who thinks very differently about politics but we rarely talk about it...'},
+    {q: 'Look at your feeds compared to your close network. Are they exposing you to different viewpoints, or reinforcing the same ones? Remember that a feed dominated by any single perspective, even one that differs from yours, is still narrowing your information environment.', ph: 'e.g. My close friends are diverse but my algorithm only shows me one side...'},
+    {q: 'What\'s one concrete step you could take this week to expose yourself to a genuine range of viewpoints, not just the opposite of what you currently see, but a real mix. This could mean following new accounts, reaching out to someone you\'ve drifted from, or joining a community outside your usual circles.', ph: 'e.g. I could follow someone whose views differ from mine, or reconnect with an old friend who sees the world differently...'},
+  ];
+  const qContainer = document.getElementById('reflect-qs');
+  qContainer.innerHTML = '<div class="ws-eyebrow" style="margin-bottom:16px">Reflection Questions</div>';
+  qs.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'rq';
+    div.innerHTML = `<div class="rq-q">${i+1}. ${q.q}</div><textarea class="rq-input" placeholder="${q.ph}" rows="3"></textarea>`;
+    qContainer.appendChild(div);
+  });
+}
+
+function shareScore() {
+  const scoreEl = document.querySelector('.score-big');
+  const levelEl = document.querySelector('.score-level');
+  if (!scoreEl || !levelEl) return;
+  const text = `I just audited my network diversity — my score is ${scoreEl.textContent} (${levelEl.textContent}).\n\nHow diverse is your close network? Find out: https://matthewfacciani.github.io/network-diversity-audit\n\n#NetworkDiversity #Misguided`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-share');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  }).catch(() => {
+    const blob = new Blob([text], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'network-diversity-score.txt';
+    a.click();
+  });
+}
+
+function exportReflections() {
+  const textareas = document.querySelectorAll('#reflect-qs .rq-input');
+  const questions = document.querySelectorAll('#reflect-qs .rq-q');
+  let output = 'NETWORK DIVERSITY AUDIT — MY REFLECTIONS\n';
+  output += '==========================================\n\n';
+  const scoreEl = document.querySelector('.score-big');
+  const levelEl = document.querySelector('.score-level');
+  if (scoreEl && levelEl) output += `Diversity Score: ${scoreEl.textContent} (${levelEl.textContent})\n\n`;
+  output += 'Close ties: ' + alters.filter(a=>a.name).map(a=>a.name).join(', ') + '\n\n';
+  output += '--- Reflection Questions ---\n\n';
+  questions.forEach((q, i) => {
+    output += q.textContent + '\n';
+    output += (textareas[i] && textareas[i].value.trim() ? textareas[i].value.trim() : '(no response)') + '\n\n';
+  });
+  output += '---\nGenerated by Network Diversity Audit · matthewfacciani.substack.com';
+  navigator.clipboard.writeText(output).then(() => {
+    const btn = document.querySelector('.restart-row .btn-dark');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  }).catch(() => {
+    const blob = new Blob([output], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'network-diversity-reflections.txt';
+    a.click();
+  });
+}
+
+function goTo(n) {
+  [1,2,3,4].forEach(i => document.getElementById('panel'+i).classList.toggle('active', i===n));
+  for (let i=1;i<=4;i++) {
+    const sn = document.getElementById('sn'+i), sl = document.getElementById('sl'+i);
+    sn.className = 'step-num' + (i===n?' active':i<n?' done':'');
+    sn.textContent = i < n ? '✓' : i;
+    sl.className = 'step-lbl' + (i===n?' active':'');
+  }
+  if (n===2) buildPanel2();
+  if (n===3) buildPanel3();
+  if (n===4) buildResults();
+  window.scrollTo(0,0);
+}
+
+function restart() {
+  alters = [];
+  selectedPlatforms = {};
+  document.getElementById('add-alter-btn').style.display = '';
+  buildPanel1();
+  goTo(1);
+}
+
+// Initialize with 3 empty alters
+alters = [
+  {name:'', politics:3, religion:3},
+  {name:'', politics:3, religion:3},
+  {name:'', politics:3, religion:3},
+];
+buildPanel1();
+</script>
+</body>
+</html>
