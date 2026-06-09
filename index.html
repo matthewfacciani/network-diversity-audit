@@ -154,6 +154,31 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
 .amp-platform { font-weight: 600; min-width: 120px; color: var(--ink); }
 .amp-arrow { color: var(--ink-light); }
 .amp-val { color: var(--ink-mid); }
+
+/* V2: multiple-choice questions (depth/breadth, media source) */
+.choice-card { background: var(--paper); border: 1.5px solid var(--rule); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+.choice-label { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.choice-sub { font-size: 12px; font-weight: 300; color: var(--ink-mid); margin-bottom: 12px; line-height: 1.5; }
+
+/* V2: self-estimate calibration */
+.guess-card { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 10px; padding: 18px; margin-top: 8px; }
+.guess-readout { font-family: Georgia, serif; font-size: 30px; text-align: center; margin-top: 8px; color: var(--ink); }
+.calib-card { display: flex; gap: 0; border: 1.5px solid var(--rule); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+.calib-half { flex: 1; padding: 18px 16px; text-align: center; }
+.calib-half:first-child { border-right: 1px solid var(--rule); background: var(--paper); }
+.calib-half:last-child { background: #f0ece4; }
+.calib-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 6px; }
+.calib-num { font-family: Georgia, serif; font-size: 44px; line-height: 1; }
+.calib-note { font-size: 13px; line-height: 1.6; color: var(--ink-mid); padding: 0 16px 16px; }
+.calib-note strong { color: var(--ink); }
+
+/* V2: shareable visualization */
+.viz-wrap { border: 1.5px solid var(--rule); border-radius: 10px; background: var(--paper); padding: 8px; margin-bottom: 14px; }
+.viz-wrap svg { width: 100%; height: auto; display: block; border-radius: 6px; }
+.viz-caption { font-size: 12px; color: var(--ink-light); font-style: italic; text-align: center; margin: 0 0 20px; line-height: 1.6; }
+
+/* V2: Identity Map connection */
+/* (idmap-box section removed — connection between tools is now a simple link) */
 </style>
 </head>
 <body>
@@ -162,24 +187,76 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
 <div class="ws-eyebrow">Interactive Worksheet</div>
 <h1 class="ws-title">Your <em>Network Diversity Audit</em></h1>
 <hr class="header-rule">
-<p class="ws-desc">Who you talk to shapes what you believe. Research shows that the people you discuss important matters with, your close ties, have significant influence on your beliefs. This tool helps you assess how diverse those relationships are and what that may mean for how you process information. Next, we will address social media feeds.</p>
+<div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+  <p class="ws-desc" style="flex:1 1 330px;min-width:240px;margin:0;">Who you talk to shapes what you believe. The people you discuss important matters with, your close ties, quietly influence what feels true. This tool helps you see how diverse those relationships really are, and what that might mean for how you process information.</p>
+  <div style="flex:0 0 auto;margin:0 auto;">
+    <svg width="260" height="98" viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="presentation" style="overflow:visible;">
+      <defs>
+        <filter id="ndSoft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dy="1.5" result="o"/>
+          <feComponentTransfer><feFuncA type="linear" slope="0.16"/></feComponentTransfer>
+          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="150" cy="62" r="40" fill="#f7f4ef" fill-opacity="0.8" stroke="#e7e2db" stroke-width="1.4" stroke-dasharray="4 5"/>
+      <g stroke="#e7e2db" stroke-width="1.5">
+        <line x1="150" y1="62" x2="104" y2="40"/><line x1="150" y1="62" x2="196" y2="40"/>
+        <line x1="150" y1="62" x2="212" y2="82"/><line x1="150" y1="62" x2="96" y2="88"/>
+        <line x1="150" y1="62" x2="250" y2="58"/>
+      </g>
+      <g filter="url(#ndSoft)" stroke="#fffdf9" stroke-width="2.5">
+        <circle cx="104" cy="40" r="12" fill="#c2410c"/>
+        <circle cx="196" cy="40" r="12" fill="#b45309"/>
+        <circle cx="212" cy="82" r="11" fill="#15803d"/>
+        <circle cx="96"  cy="88" r="11" fill="#c2410c"/>
+        <circle cx="250" cy="58" r="9"  fill="#15803d"/>
+        <circle cx="150" cy="62" r="17" fill="#1c1917"/>
+      </g>
+      <text x="150" y="66" text-anchor="middle" font-size="9" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">You</text>
+    </svg>
+  </div>
+</div>
 <div style="margin-top:14px;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:12px;color:var(--ink-light);line-height:1.6;">
   <strong style="color:var(--ink-mid)">For reflection and educational purposes only.</strong> Scores are rough estimates meant to prompt thinking, not precise measurements. Think of this as a mirror, not a diagnostic tool. No data is collected unless you choose to share it.
 </div>
 <div style="height:28px"></div>
 
 <div class="step-bar">
-  <div class="step-item"><div class="step-num active" id="sn1">1</div><span class="step-lbl active" id="sl1">Your Network</span></div>
+  <div class="step-item"><div class="step-num active" id="sn1">1</div><span class="step-lbl active" id="sl1">Predict</span></div>
   <div class="step-line"></div>
-  <div class="step-item"><div class="step-num" id="sn2">2</div><span class="step-lbl" id="sl2">Beliefs</span></div>
+  <div class="step-item"><div class="step-num" id="sn2">2</div><span class="step-lbl" id="sl2">Your Network</span></div>
   <div class="step-line"></div>
-  <div class="step-item"><div class="step-num" id="sn3">3</div><span class="step-lbl" id="sl3">Your Feeds</span></div>
+  <div class="step-item"><div class="step-num" id="sn3">3</div><span class="step-lbl" id="sl3">Beliefs</span></div>
   <div class="step-line"></div>
-  <div class="step-item"><div class="step-num" id="sn4">4</div><span class="step-lbl" id="sl4">Reflect</span></div>
+  <div class="step-item"><div class="step-num" id="sn4">4</div><span class="step-lbl" id="sl4">Your Feeds</span></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num" id="sn5">5</div><span class="step-lbl" id="sl5">Reflect</span></div>
 </div>
 
-<!-- PANEL 1: Name Generator -->
+<!-- PANEL 1: Predict (self-estimate first, before any input) -->
 <div class="panel active" id="panel1">
+  <div class="section-title">First, make a prediction</div>
+  <p class="section-body">Before you map anything out, take a guess. In a moment you'll think about the people closest to you and rate how similar their beliefs are to yours. This tool turns that into a <em>network diversity</em> score: 0 means everyone close to you mirrors your views, 100 means your inner circle is highly varied.</p>
+  <div class="hint-box">💡 The gap between what you guess now and what you score later is often the most revealing part. People tend to assume their circle is more varied than it is.</div>
+  <div class="choice-card guess-card">
+    <div class="choice-label">What do you think your network diversity score will be?</div>
+    <div class="choice-sub">Go with your gut. There are no wrong answers here.</div>
+    <div class="slider-wrap">
+      <div class="slider-labels"><span>0 · All mirror me</span><span>Highly diverse · 100</span></div>
+      <input type="range" class="belief-slider" id="guess-slider" min="0" max="100" value="50"
+        style="background:linear-gradient(to right, var(--ink) 50%, var(--rule) 50%)"
+        oninput="setSelfEstimate(+this.value, this)" />
+      <div class="guess-readout" id="guess-readout">50</div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-dark" onclick="goTo(2)">Next: Map My Network →</button>
+  </div>
+</div>
+
+<!-- PANEL 2: Name Generator -->
+<div class="panel" id="panel2">
   <div class="section-title">Who do you discuss important matters with?</div>
   <p class="section-body">Think about the people in your life you'd turn to for a meaningful conversation or advice about something important: friends, family, colleagues, mentors. List up to 6 names.</p>
   <div class="hint-box">💡 Don't overthink the names, go with whoever comes to mind first to determine your inner circle. I don't collect data here, but feel free to use pseudonyms or initials.</div>
@@ -190,44 +267,49 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
     <span class="tally-num" id="alter-tally">0</span>
   </div>
   <div class="btn-row">
+    <button class="btn btn-ghost" onclick="goTo(1)">← Back</button>
     <button class="btn btn-dark" id="to-p2" disabled>Next: Rate Their Beliefs →</button>
   </div>
 </div>
 
-<!-- PANEL 2: Belief Ratings -->
-<div class="panel" id="panel2">
+<!-- PANEL 3: Belief Ratings -->
+<div class="panel" id="panel3">
   <div class="section-title">How do their beliefs compare to yours?</div>
   <p class="section-body">For each person, rate how similar their beliefs are to yours across two dimensions. You don't need to know exactly, go with your best sense.</p>
   <div class="hint-box">💡 Research shows that even <strong>one person</strong> with different views in your close network can meaningfully reduce belief extremity. Small differences matter.</div>
   <div id="belief-ratings"></div>
   <div class="btn-row">
-    <button class="btn btn-ghost" onclick="goTo(1)">← Back</button>
-    <button class="btn btn-dark" onclick="goTo(3)">Next: Your Feeds →</button>
+    <button class="btn btn-ghost" onclick="goTo(2)">← Back</button>
+    <button class="btn btn-dark" onclick="goTo(4)">Next: Your Feeds →</button>
   </div>
 </div>
 
-<!-- PANEL 3: Social Media -->
-<div class="panel" id="panel3">
+<!-- PANEL 4: Social Media -->
+<div class="panel" id="panel4">
   <div class="section-title">How diverse are your social media feeds?</div>
   <p class="section-body">Your close network is your most important influence, but your feeds add another layer. For each platform you use, rate how often you encounter viewpoints different from your own.</p>
   <div class="hint-box">💡 Think about what the algorithm actually surfaces for you. A feed that mostly shows one perspective, even if it's the opposite of yours, still limits your exposure to a genuine range of viewpoints.</div>
   <div id="feed-area"></div>
+
   <div class="btn-row">
-    <button class="btn btn-ghost" onclick="goTo(2)">← Back</button>
-    <button class="btn btn-dark" onclick="goTo(4)">See My Results →</button>
+    <button class="btn btn-ghost" onclick="goTo(3)">← Back</button>
+    <button class="btn btn-dark" onclick="goTo(5)">See My Results →</button>
   </div>
 </div>
 
-<!-- PANEL 4: Results -->
-<div class="panel" id="panel4">
+<!-- PANEL 5: Results -->
+<div class="panel" id="panel5">
   <div class="section-title">What your network reveals</div>
   <div id="results-score"></div>
+  <div id="calibration-card"></div>
+  <div id="viz-area"></div>
   <div id="dimension-breakdown"></div>
   <div class="amp-callout" id="feed-summary"></div>
   <div class="research-callout">
     <div class="rc-eyebrow">Evidence-Based Insights: Facciani &amp; Brashears (2019); Facciani &amp; Traberg (2024); Bail et al. (2018)</div>
     <p class="rc-text">Research shows that the people you discuss important matters with have a strong influence on your beliefs. When your close ties share the same political or religious views, those beliefs get reinforced through what sociologists call a <em>plausibility structure</em>: the more your inner circle agrees, the more certain you feel, even when a belief may be inaccurate. Importantly, having even <strong>one person</strong> with different views in your close network is linked to less extreme beliefs. Small differences matter.<br><br>Research on how feeds shape beliefs is more mixed. Social media can reinforce existing identities through "reinforcing spirals" : we seek affirming content, and algorithms amplify it. But exposure to opposing views alone doesn't always reduce bias. In one study, people paid to follow opposing political accounts became more polarized, not less : passive exposure can strengthen identity rather than broaden perspective. What matters most is the quality of engagement. These feed ratings are meant to prompt reflection, not to imply that a higher score automatically makes you more resilient.</p>
   </div>
+
   <div id="reflect-qs"></div>
   <div style="margin-top:8px;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:13px;color:var(--ink-mid);line-height:1.7;">
     💬 Want to learn how to have more productive conversations across difference? <a href="https://cup.columbia.edu/book/misguided/9780231205054" target="_blank" style="color:var(--ink);font-weight:600;text-decoration:underline;">Explore more in <em>Misguided</em> →</a>
@@ -235,7 +317,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
   <div class="restart-row">
     <button class="btn btn-dark" onclick="exportReflections()">📋 Copy My Responses</button>
     <button class="btn btn-share btn" onclick="shareScore()">🔗 Share My Score</button>
-    <button class="btn btn-ghost" onclick="goTo(3)">← Back</button>
+    <button class="btn btn-ghost" onclick="goTo(4)">← Back</button>
     <button class="btn btn-ghost" onclick="restart()">↺ Start Over</button>
     <span class="restart-note">Try adding different people to see how your score changes.</span>
   </div>
@@ -243,7 +325,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
     🔒 <strong style="color:var(--ink)">Your data stays on your device.</strong> This tool does not collect or store any of your responses. If you'd like to voluntarily share your score and feedback to help improve future versions, you can do so here: <a href="https://docs.google.com/forms/d/e/1FAIpQLSfbES14qgsqSU3MErNxgqCIXPSO1DL__JPpi1ghMUkexjWXuQ/viewform?usp=publish-editor" target="_blank" style="color:var(--ink);font-weight:600;text-decoration:underline;">Share my score &amp; feedback →</a>
   </div>
   <div style="margin-top:14px;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:13px;color:var(--ink-mid);line-height:1.7;">
-    🗺️ Want to see the full picture? <strong><a href="https://matthewfacciani.github.io/identity-map" target="_blank" style="color:var(--ink);text-decoration:underline;">Map your social identities next →</a></strong> and explore how your identity complexity and network diversity compare.
+    🗺️ Also try the <strong><a href="https://matthewfacciani.github.io/identity-map" target="_blank" style="color:var(--ink);text-decoration:underline;">Identity Map →</a></strong> to see how the groups you belong to shape what you believe and who you trust.
   </div>
 </div>
 
@@ -263,6 +345,8 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
 // State
 let alters = []; // {name, politics, religion}
 let selectedPlatforms = {}; // {platformId: diversityLevel}
+let selfEstimate = 50;   // V2: user's guessed score (0-100)
+let lastResult = null;   // V2: stores the computed result for sharing/export
 
 const PLATFORMS = [
   {id:'twitter', name:'Twitter / X', icon:'𝕏'},
@@ -361,7 +445,7 @@ document.getElementById('add-alter-btn').addEventListener('click', () => {
   if (alters.length >= 6) document.getElementById('add-alter-btn').style.display = 'none';
 });
 
-document.getElementById('to-p2').addEventListener('click', () => goTo(2));
+document.getElementById('to-p2').addEventListener('click', () => goTo(3));
 
 // Panel 2: belief ratings with sliders
 function buildPanel2() {
@@ -476,6 +560,13 @@ function buildPanel3() {
   });
 }
 
+// V2: self-estimate slider handler
+function setSelfEstimate(val, input) {
+  selfEstimate = val;
+  document.getElementById('guess-readout').textContent = val;
+  input.style.background = `linear-gradient(to right, var(--ink) ${val}%, var(--rule) ${val}%)`;
+}
+
 function renderFeedCard(p, container) {
   const div = document.createElement('div');
   div.id = 'feed-card-' + p.id;
@@ -576,6 +667,15 @@ function buildResults() {
     </div>
     <p style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:20px;line-height:1.6;">This score reflects self-reported belief similarity across your close ties, not a diagnostic.</p>`;
 
+  // V2: store everything we need for sharing, export, and the identity combo
+  lastResult = { combined, level, color, networkScore, feedScore, dimScores, named };
+
+  // V2: render the self-estimate calibration card
+  renderCalibration(combined);
+
+  // V2: render the shareable network visualization
+  renderVisualization(named, combined, level, color);
+
   // Dimension breakdown
   const dimColors = {politics: '#c2410c', religion: '#0369a1'};
   const dimLabels = {politics: 'Political Views', religion: 'Religious/Spiritual Beliefs'};
@@ -632,11 +732,185 @@ function buildResults() {
   });
 }
 
+// ============ V2 FUNCTIONS ============
+
+// Average belief difference for one person, 0 (mirrors you) to 100 (very different)
+function personDiff(a) {
+  const p = ((a.politics || 3) - 1) / 4 * 100;
+  const r = ((a.religion || 3) - 1) / 4 * 100;
+  return (p + r) / 2;
+}
+
+// V2: self-estimate calibration card
+function renderCalibration(actual) {
+  const guess = selfEstimate;
+  const gap = guess - actual;
+  let note;
+  if (gap >= 13) {
+    note = `You guessed <strong>${guess}</strong>, but your score came out to <strong>${actual}</strong>. You <strong>overestimated</strong> how diverse your network is by ${gap} points. This is one of the most common and human blind spots: our inner circles usually feel more varied than they are, because the differences we do have feel vivid to us.`;
+  } else if (gap <= -13) {
+    note = `You guessed <strong>${guess}</strong>, but your score came out to <strong>${actual}</strong>. You <strong>underestimated</strong> your network's diversity by ${Math.abs(gap)} points. There may be more genuine difference around you than you give yourself credit for, which is worth leaning into.`;
+  } else {
+    note = `You guessed <strong>${guess}</strong> and your score came out to <strong>${actual}</strong>. Your instinct was close, which suggests you have a fairly accurate read on your own network.`;
+  }
+  document.getElementById('calibration-card').innerHTML = `
+    <div class="calib-card">
+      <div class="calib-half"><div class="calib-lbl">You guessed</div><div class="calib-num" style="color:var(--ink-mid)">${guess}</div></div>
+      <div class="calib-half"><div class="calib-lbl">Actual score</div><div class="calib-num" style="color:var(--ink)">${actual}</div></div>
+    </div>
+    <div class="calib-note">${note}</div>`;
+}
+
+// V2: build the shareable ego-network SVG
+function renderVisualization(named, combined, level, color) {
+  const W = 560, H = 720, cx = 280, cy = 432;
+  const rMin = 58, rMax = 188, nodeR = 19;
+  // palette as literal hex so the SVG renders correctly when exported to PNG
+  const C = { bg:'#f7f4ef', paper:'#fffdf9', ink:'#1c1917', mid:'#57534e', light:'#a8a29e', rule:'#e7e2db', echo:'#c2410c', amber:'#b45309', blue:'#2563eb', green:'#15803d' };
+
+  // Build people nodes (diff = how different their beliefs are from yours)
+  const personEntries = named.map(a => ({
+    name: (() => { const fn = (a.name || '').split(/\s+/)[0]; return fn.length > 12 ? fn.slice(0,11)+'…' : fn; })(),
+    diff: personDiff(a),
+    isPlatform: false,
+  }));
+
+  // Build feed nodes (diversityLevel 1 = echoes your views → close;
+  // 5 = very diverse → far — same logic as belief similarity for people)
+  const feedEntries = Object.entries(selectedPlatforms)
+    .map(([pid, lvl]) => {
+      const p = PLATFORMS.find(x => x.id === pid);
+      if (!p) return null;
+      const shortName = p.name.split('/')[0].trim().split(' ')[0].slice(0, 10);
+      return { name: shortName, diff: (lvl - 1) / 4 * 100, isPlatform: true };
+    })
+    .filter(Boolean);
+
+  // Distribute all nodes (people + feeds) evenly around the orbit
+  const allNodes = [...personEntries, ...feedEntries];
+  const total = allNodes.length;
+  allNodes.forEach((nd, i) => {
+    const r = rMin + (nd.diff / 100) * (rMax - rMin);
+    const angle = (-90 + (360 / total) * i) * Math.PI / 180;
+    nd.x = cx + r * Math.cos(angle);
+    nd.y = cy + r * Math.sin(angle);
+    nd.col = nd.isPlatform ? '#334155'
+           : nd.diff < 33 ? C.echo
+           : nd.diff < 66 ? C.amber
+           : C.green;
+  });
+
+  const mirrorCount = personEntries.filter(nd => nd.diff < 33).length;
+  const n = personEntries.length; // for caption
+  // echo-zone circle: anyone closer than this mostly mirrors you
+  const echoR = rMin + (33 / 100) * (rMax - rMin);
+
+  let svg = `<svg id="net-viz" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Georgia, serif">`;
+  svg += `<rect width="${W}" height="${H}" fill="${C.paper}"/>`;
+  // header (kept in the top band; the orbit below never reaches this far up)
+  svg += `<text x="${cx}" y="48" text-anchor="middle" font-size="13" letter-spacing="2" fill="${C.light}" font-family="system-ui, sans-serif">NETWORK DIVERSITY AUDIT</text>`;
+  svg += `<text x="${cx}" y="98" text-anchor="middle" font-size="46" fill="${color}">${combined}</text>`;
+  svg += `<text x="${cx}" y="124" text-anchor="middle" font-size="15" fill="${color}">${level}</text>`;
+  // legend: three items — mirrors you / brings difference / feed
+  svg += `<circle cx="78" cy="160" r="7" fill="${C.echo}"/><text x="92" y="164" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Mirrors you</text>`;
+  svg += `<circle cx="210" cy="160" r="7" fill="${C.green}"/><text x="224" y="164" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Brings difference</text>`;
+  svg += `<rect x="364" y="153" width="14" height="14" rx="3" fill="#334155"/><text x="384" y="164" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Feed</text>`;
+  // echo zone ring
+  svg += `<circle cx="${cx}" cy="${cy}" r="${echoR.toFixed(1)}" fill="${C.bg}" fill-opacity="0.7" stroke="${C.rule}" stroke-width="1.5" stroke-dasharray="4 5"/>`;
+  // connector lines (all nodes)
+  allNodes.forEach(nd => {
+    svg += `<line x1="${cx}" y1="${cy}" x2="${nd.x.toFixed(1)}" y2="${nd.y.toFixed(1)}" stroke="${C.rule}" stroke-width="1.5"/>`;
+  });
+  // person nodes → circles
+  personEntries.forEach(nd => {
+    svg += `<circle cx="${nd.x.toFixed(1)}" cy="${nd.y.toFixed(1)}" r="${nodeR}" fill="${nd.col}" fill-opacity="0.92" stroke="${C.paper}" stroke-width="3"/>`;
+  });
+  // feed nodes → rounded squares (same visual weight as circles)
+  const sq = nodeR * 2; // square side length
+  feedEntries.forEach(nd => {
+    svg += `<rect x="${(nd.x - nodeR).toFixed(1)}" y="${(nd.y - nodeR).toFixed(1)}" width="${sq}" height="${sq}" rx="4" ry="4" fill="${nd.col}" fill-opacity="0.92" stroke="${C.paper}" stroke-width="3"/>`;
+  });
+  // you node (drawn last among shapes, on top)
+  svg += `<circle cx="${cx}" cy="${cy}" r="30" fill="${C.ink}" stroke="${C.paper}" stroke-width="3"/>`;
+  svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="13" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">You</text>`;
+  // labels below all nodes — halo pass first, then ink text on top
+  allNodes.forEach(nd => {
+    const ly = (nd.y + nodeR + 15).toFixed(1);
+    const nm = escapeXml(nd.name);
+    svg += `<text x="${nd.x.toFixed(1)}" y="${ly}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" font-weight="600" fill="none" stroke="${C.paper}" stroke-width="3.5" stroke-linejoin="round">${nm}</text>`;
+    svg += `<text x="${nd.x.toFixed(1)}" y="${ly}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" font-weight="600" fill="${C.ink}">${nm}</text>`;
+  });
+  // footer
+  const feedEchoCount = feedEntries.filter(nd => nd.diff < 33).length;
+  const feedTotal = feedEntries.length;
+  let footerLine = `${mirrorCount} of ${n} close ${n === 1 ? 'tie' : 'ties'} mostly mirror your beliefs`;
+  if (feedTotal > 0) footerLine += ` · ${feedEchoCount} of ${feedTotal} ${feedTotal === 1 ? 'feed' : 'feeds'} lean the same way`;
+  svg += `<text x="${cx}" y="${H - 32}" text-anchor="middle" font-size="12" fill="${C.mid}" font-family="system-ui, sans-serif">${footerLine}</text>`;
+  svg += `<text x="${cx}" y="${H - 14}" text-anchor="middle" font-size="10" fill="${C.light}" font-family="system-ui, sans-serif">matthewfacciani.github.io/network-diversity-audit</text>`;
+  svg += `</svg>`;
+
+  document.getElementById('viz-area').innerHTML = `
+    <div class="viz-wrap">${svg}</div>
+    <p class="viz-caption">Circles are people close to you; squares are your feeds. Both are placed by how much they echo your views — the closer to center, the more they align with what you already believe.</p>
+    <div class="btn-row" style="margin-top:-6px;margin-bottom:20px;">
+      <button class="btn btn-dark" onclick="downloadViz()">🖼️ Download image</button>
+    </div>`;
+}
+
+function escapeXml(s) {
+  return String(s).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+}
+
+// V2: turn the SVG into a downloadable PNG (no libraries needed)
+function downloadViz() {
+  const svgEl = document.getElementById('net-viz');
+  if (!svgEl) return;
+  const scale = 2; // render at 2x for a crisp image
+  const vb = svgEl.viewBox.baseVal;
+  const w = vb.width, h = vb.height;
+  const xml = new XMLSerializer().serializeToString(svgEl);
+  const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fffdf9';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'my-network-diversity.png';
+      a.click();
+    }, 'image/png');
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+}
+
+// V2: Identity Map connection.
+// Deliberately no label matching here. Instead the Network Audit reads two things
+// out of the pasted Identity Map text: the complexity score, and (newer Identity
+// Map outputs only) per-axis overlap levels for political and worldview identity.
+// Those overlap levels line up with this tool's own per-axis network diversity
+// scores, which is what makes the combined read additive.
+
 function shareScore() {
   const scoreEl = document.querySelector('.score-big');
   const levelEl = document.querySelector('.score-level');
   if (!scoreEl || !levelEl) return;
-  const text = `I just audited my network diversity — my score is ${scoreEl.textContent} (${levelEl.textContent}).\n\nHow diverse is your close network? Find out: https://matthewfacciani.github.io/network-diversity-audit\n\n#NetworkDiversity #Misguided`;
+  let guessLine = '';
+  if (lastResult) {
+    const actual = lastResult.combined;
+    if (selfEstimate - actual >= 13) guessLine = `\n\nI guessed ${selfEstimate} — turns out I overestimated how diverse my circle is.`;
+    else if (actual - selfEstimate >= 13) guessLine = `\n\nI guessed ${selfEstimate} — turns out my circle is more diverse than I thought.`;
+    else guessLine = `\n\nI guessed ${selfEstimate}, and I was close.`;
+  }
+  const text = `I just audited my network diversity — my score is ${scoreEl.textContent} (${levelEl.textContent}).${guessLine}\n\nHow diverse is your close network? Find out: https://matthewfacciani.github.io/network-diversity-audit\n\n#NetworkDiversity #Misguided`;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector('.btn-share');
     const orig = btn.textContent;
@@ -654,18 +928,30 @@ function shareScore() {
 function exportReflections() {
   const textareas = document.querySelectorAll('#reflect-qs .rq-input');
   const questions = document.querySelectorAll('#reflect-qs .rq-q');
-  let output = 'NETWORK DIVERSITY AUDIT — MY REFLECTIONS\n';
-  output += '==========================================\n\n';
   const scoreEl = document.querySelector('.score-big');
   const levelEl = document.querySelector('.score-level');
-  if (scoreEl && levelEl) output += `Diversity Score: ${scoreEl.textContent} (${levelEl.textContent})\n\n`;
-  output += 'Close ties: ' + alters.filter(a=>a.name).map(a=>a.name).join(', ') + '\n\n';
-  output += '--- Reflection Questions ---\n\n';
+  const score = scoreEl ? scoreEl.textContent : '—';
+  const level = levelEl ? levelEl.textContent : '—';
+  const gap = lastResult ? selfEstimate - lastResult.combined : null;
+  const gapStr = gap !== null
+    ? (gap > 0 ? `overestimated by ${gap}` : gap < 0 ? `underestimated by ${Math.abs(gap)}` : 'spot on')
+    : '';
+  const ties = alters.filter(a=>a.name).map(a=>a.name).join(', ');
+  const feeds = Object.keys(selectedPlatforms).map(pid => {
+    const p = PLATFORMS.find(x => x.id === pid); return p ? p.name : pid;
+  }).join(', ');
+  let output = `NETWORK DIVERSITY AUDIT\n`;
+  output += `================================\n\n`;
+  output += `Score: ${score} · ${level}\n`;
+  if (gap !== null) output += `Guessed: ${selfEstimate} (${gapStr})\n`;
+  if (ties) output += `Close ties: ${ties}\n`;
+  if (feeds) output += `Feeds: ${feeds}\n`;
+  output += `\n--- Reflection Questions ---\n\n`;
   questions.forEach((q, i) => {
     output += q.textContent + '\n';
     output += (textareas[i] && textareas[i].value.trim() ? textareas[i].value.trim() : '(no response)') + '\n\n';
   });
-  output += '---\nGenerated by Network Diversity Audit · matthewfacciani.substack.com';
+  output += `---\nmatthewfacciani.github.io/network-diversity-audit`;
   navigator.clipboard.writeText(output).then(() => {
     const btn = document.querySelector('.restart-row .btn-dark');
     const orig = btn.textContent;
@@ -675,28 +961,33 @@ function exportReflections() {
     const blob = new Blob([output], {type:'text/plain'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'network-diversity-reflections.txt';
+    a.download = 'network-diversity-results.txt';
     a.click();
   });
 }
 
 function goTo(n) {
-  [1,2,3,4].forEach(i => document.getElementById('panel'+i).classList.toggle('active', i===n));
-  for (let i=1;i<=4;i++) {
+  for (let i=1;i<=5;i++) document.getElementById('panel'+i).classList.toggle('active', i===n);
+  for (let i=1;i<=5;i++) {
     const sn = document.getElementById('sn'+i), sl = document.getElementById('sl'+i);
     sn.className = 'step-num' + (i===n?' active':i<n?' done':'');
     sn.textContent = i < n ? '✓' : i;
     sl.className = 'step-lbl' + (i===n?' active':'');
   }
-  if (n===2) buildPanel2();
-  if (n===3) buildPanel3();
-  if (n===4) buildResults();
+  if (n===3) buildPanel2(); // beliefs
+  if (n===4) buildPanel3(); // feeds + extra questions
+  if (n===5) buildResults();
   window.scrollTo(0,0);
 }
 
 function restart() {
   alters = [];
   selectedPlatforms = {};
+  selfEstimate = 50;
+  lastResult = null;
+  const gs = document.getElementById('guess-slider');
+  if (gs) { gs.value = 50; gs.style.background = 'linear-gradient(to right, var(--ink) 50%, var(--rule) 50%)'; }
+  const gr = document.getElementById('guess-readout'); if (gr) gr.textContent = '50';
   document.getElementById('add-alter-btn').style.display = '';
   buildPanel1();
   goTo(1);
