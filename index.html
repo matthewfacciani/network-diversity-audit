@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -761,97 +762,138 @@ function renderCalibration(actual) {
     <div class="calib-note">${note}</div>`;
 }
 
-// V2: build the shareable ego-network SVG
+// V2: build the shareable network visualization
+// Renders a horizontal "spectrum" per lane (people / feeds): x-position encodes
+// belief difference from you (0 = mirrors you, 100 = brings difference), and a
+// beeswarm pass staggers items vertically so close values never collide —
+// unlike a fixed-radius orbit, this scales cleanly from 1 node to a dozen.
+function shortLabel(s) {
+  const first = String(s || '').trim().split(/\s+/)[0] || '';
+  return first.length > 12 ? first.slice(0, 11) + '…' : first;
+}
+
 function renderVisualization(named, combined, level, color) {
-  const W = 560, H = 720, cx = 280, cy = 432;
-  const rMin = 58, rMax = 188, nodeR = 19;
-  // palette as literal hex so the SVG renders correctly when exported to PNG
-  const C = { bg:'#f7f4ef', paper:'#fffdf9', ink:'#1c1917', mid:'#57534e', light:'#a8a29e', rule:'#e7e2db', echo:'#c2410c', amber:'#b45309', blue:'#2563eb', green:'#15803d' };
+  const C = { bg:'#f7f4ef', paper:'#fffdf9', ink:'#1c1917', mid:'#57534e', light:'#a8a29e', rule:'#e7e2db', echo:'#c2410c', amber:'#b45309', green:'#15803d', feed:'#334155' };
 
-  // Build people nodes (diff = how different their beliefs are from yours)
-  const personEntries = named.map(a => ({
-    name: (() => { const fn = (a.name || '').split(/\s+/)[0]; return fn.length > 12 ? fn.slice(0,11)+'…' : fn; })(),
-    diff: personDiff(a),
-    isPlatform: false,
-  }));
-
-  // Build feed nodes (diversityLevel 1 = echoes your views → close;
-  // 5 = very diverse → far — same logic as belief similarity for people)
+  const personEntries = named.map(a => ({ name: shortLabel(a.name), diff: personDiff(a), isPlatform: false }));
   const feedEntries = Object.entries(selectedPlatforms)
     .map(([pid, lvl]) => {
       const p = PLATFORMS.find(x => x.id === pid);
       if (!p) return null;
-      const shortName = p.name.split('/')[0].trim().split(' ')[0].slice(0, 10);
-      return { name: shortName, diff: (lvl - 1) / 4 * 100, isPlatform: true };
+      return { name: shortLabel(p.name.split('/')[0]), diff: (lvl - 1) / 4 * 100, isPlatform: true };
     })
     .filter(Boolean);
 
-  // Distribute all nodes (people + feeds) evenly around the orbit
-  const allNodes = [...personEntries, ...feedEntries];
-  const total = allNodes.length;
-  allNodes.forEach((nd, i) => {
-    const r = rMin + (nd.diff / 100) * (rMax - rMin);
-    const angle = (-90 + (360 / total) * i) * Math.PI / 180;
-    nd.x = cx + r * Math.cos(angle);
-    nd.y = cy + r * Math.sin(angle);
-    nd.col = nd.isPlatform ? '#334155'
-           : nd.diff < 33 ? C.echo
-           : nd.diff < 66 ? C.amber
-           : C.green;
-  });
+  const W = 640;
+  const marginX = 76, axisEndX = W - 76, axisW = axisEndX - marginX;
+  const nodeR = 15, stepY = 48, minGapX = 60;
+  const xFor = diff => marginX + (diff / 100) * axisW;
+
+  // Beeswarm: sort by x, then place each item on the first level (0, 1, -1, 2, -2, …)
+  // whose most-recently-placed item is far enough away in x. Levels are 48px apart,
+  // which is wider than a node's own footprint, so items never collide across levels.
+  function layoutLane(entries) {
+    const items = entries.map(e => ({ ...e, x: xFor(e.diff) })).sort((a, b) => a.x - b.x);
+    const lastXAtLevel = {};
+    items.forEach(it => {
+      let chosen = 0;
+      if (lastXAtLevel[0] !== undefined && it.x - lastXAtLevel[0] < minGapX) {
+        chosen = null;
+        for (let d = 1; d <= 8 && chosen === null; d++) {
+          for (const lvl of [d, -d]) {
+            if (lastXAtLevel[lvl] === undefined || it.x - lastXAtLevel[lvl] >= minGapX) { chosen = lvl; break; }
+          }
+        }
+        if (chosen === null) chosen = 0;
+      }
+      it.level = chosen;
+      lastXAtLevel[chosen] = it.x;
+    });
+    const maxLevel = items.reduce((m, it) => Math.max(m, it.level), 0);
+    const minLevel = items.reduce((m, it) => Math.min(m, it.level), 0);
+    return { items, maxLevel, minLevel };
+  }
+
+  const peopleLayout = layoutLane(personEntries);
+  const feedLayout = feedEntries.length ? layoutLane(feedEntries) : null;
+
+  function laneHeight(layout) {
+    // even a level-0 node sits with its top edge nodeR above the axis line,
+    // so "above" always needs headroom for that, not just for stacked levels
+    const above = Math.max(0, -layout.minLevel) * stepY + nodeR + 30;
+    const below = Math.max(0, layout.maxLevel) * stepY + nodeR + 26;
+    return { above, below, total: above + below };
+  }
+  const peopleDims = laneHeight(peopleLayout);
+  const feedDims = feedLayout ? laneHeight(feedLayout) : null;
+
+  const headerH = 176, laneCaptionH = 44, laneGap = 30, footerH = 56;
+  let cursorY = headerH;
+  const peopleAxisY = cursorY + laneCaptionH + peopleDims.above;
+  cursorY = peopleAxisY + peopleDims.below;
+  let feedAxisY = null;
+  if (feedDims) {
+    cursorY += laneGap;
+    feedAxisY = cursorY + laneCaptionH + feedDims.above;
+    cursorY = feedAxisY + feedDims.below;
+  }
+  const H = cursorY + footerH;
+
+  function drawLane(svgParts, title, layout, axisY, dims) {
+    const capY = axisY - dims.above - 12;
+    svgParts.push(`<text x="${marginX}" y="${capY}" font-size="11" letter-spacing="1.5" font-weight="600" fill="${C.light}" font-family="system-ui, sans-serif">${title}</text>`);
+    svgParts.push(`<text x="${marginX}" y="${capY + 18}" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Mirrors you</text>`);
+    svgParts.push(`<text x="${axisEndX}" y="${capY + 18}" text-anchor="end" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Brings difference</text>`);
+    svgParts.push(`<line x1="${marginX}" y1="${axisY}" x2="${axisEndX}" y2="${axisY}" stroke="${C.rule}" stroke-width="1.5"/>`);
+    // all connector lines first, so a lower item's leader line never cuts across
+    // an upper item's label when they share the same x (identical diff value)
+    layout.items.forEach(it => {
+      const y = axisY + it.level * stepY;
+      svgParts.push(`<line x1="${it.x.toFixed(1)}" y1="${axisY}" x2="${it.x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${C.rule}" stroke-width="1.5"/>`);
+    });
+    layout.items.forEach(it => {
+      const y = axisY + it.level * stepY;
+      const col = it.isPlatform ? C.feed : it.diff < 33 ? C.echo : it.diff < 66 ? C.amber : C.green;
+      if (it.isPlatform) {
+        const sq = nodeR * 2;
+        svgParts.push(`<rect x="${(it.x - nodeR).toFixed(1)}" y="${(y - nodeR).toFixed(1)}" width="${sq}" height="${sq}" rx="4" fill="${col}" fill-opacity="0.92" stroke="${C.paper}" stroke-width="3"/>`);
+      } else {
+        svgParts.push(`<circle cx="${it.x.toFixed(1)}" cy="${y.toFixed(1)}" r="${nodeR}" fill="${col}" fill-opacity="0.92" stroke="${C.paper}" stroke-width="3"/>`);
+      }
+      const ly = (y + nodeR + 15).toFixed(1);
+      const nm = escapeXml(it.name);
+      svgParts.push(`<text x="${it.x.toFixed(1)}" y="${ly}" text-anchor="middle" font-size="11" font-weight="600" font-family="system-ui, sans-serif" fill="none" stroke="${C.paper}" stroke-width="3.5" stroke-linejoin="round">${nm}</text>`);
+      svgParts.push(`<text x="${it.x.toFixed(1)}" y="${ly}" text-anchor="middle" font-size="11" font-weight="600" font-family="system-ui, sans-serif" fill="${C.ink}">${nm}</text>`);
+    });
+  }
+
+  const cx = W / 2;
+  const parts = [];
+  parts.push(`<rect width="${W}" height="${H}" fill="${C.paper}"/>`);
+  parts.push(`<text x="${cx}" y="42" text-anchor="middle" font-size="13" letter-spacing="2" fill="${C.light}" font-family="system-ui, sans-serif">NETWORK DIVERSITY AUDIT</text>`);
+  parts.push(`<text x="${cx}" y="94" text-anchor="middle" font-size="46" fill="${color}" font-family="Georgia, serif">${combined}</text>`);
+  parts.push(`<text x="${cx}" y="120" text-anchor="middle" font-size="15" fill="${color}" font-family="Georgia, serif">${level}</text>`);
+  parts.push(`<circle cx="${cx - 168}" cy="152" r="7" fill="${C.echo}"/><text x="${cx - 154}" y="156" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Mirrors you</text>`);
+  parts.push(`<circle cx="${cx - 10}" cy="152" r="7" fill="${C.green}"/><text x="${cx + 4}" y="156" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Brings difference</text>`);
+  parts.push(`<rect x="${cx + 128}" y="145" width="14" height="14" rx="3" fill="${C.feed}"/><text x="${cx + 148}" y="156" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Feed</text>`);
+
+  drawLane(parts, 'YOUR PEOPLE', peopleLayout, peopleAxisY, peopleDims);
+  if (feedLayout) drawLane(parts, 'YOUR FEEDS', feedLayout, feedAxisY, feedDims);
 
   const mirrorCount = personEntries.filter(nd => nd.diff < 33).length;
-  const n = personEntries.length; // for caption
-  // echo-zone circle: anyone closer than this mostly mirrors you
-  const echoR = rMin + (33 / 100) * (rMax - rMin);
-
-  let svg = `<svg id="net-viz" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Georgia, serif">`;
-  svg += `<rect width="${W}" height="${H}" fill="${C.paper}"/>`;
-  // header (kept in the top band; the orbit below never reaches this far up)
-  svg += `<text x="${cx}" y="48" text-anchor="middle" font-size="13" letter-spacing="2" fill="${C.light}" font-family="system-ui, sans-serif">NETWORK DIVERSITY AUDIT</text>`;
-  svg += `<text x="${cx}" y="98" text-anchor="middle" font-size="46" fill="${color}">${combined}</text>`;
-  svg += `<text x="${cx}" y="124" text-anchor="middle" font-size="15" fill="${color}">${level}</text>`;
-  // legend: three items — mirrors you / brings difference / feed
-  svg += `<circle cx="78" cy="160" r="7" fill="${C.echo}"/><text x="92" y="164" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Mirrors you</text>`;
-  svg += `<circle cx="210" cy="160" r="7" fill="${C.green}"/><text x="224" y="164" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Brings difference</text>`;
-  svg += `<rect x="364" y="153" width="14" height="14" rx="3" fill="#334155"/><text x="384" y="164" font-size="11" fill="${C.mid}" font-family="system-ui, sans-serif">Feed</text>`;
-  // echo zone ring
-  svg += `<circle cx="${cx}" cy="${cy}" r="${echoR.toFixed(1)}" fill="${C.bg}" fill-opacity="0.7" stroke="${C.rule}" stroke-width="1.5" stroke-dasharray="4 5"/>`;
-  // connector lines (all nodes)
-  allNodes.forEach(nd => {
-    svg += `<line x1="${cx}" y1="${cy}" x2="${nd.x.toFixed(1)}" y2="${nd.y.toFixed(1)}" stroke="${C.rule}" stroke-width="1.5"/>`;
-  });
-  // person nodes → circles
-  personEntries.forEach(nd => {
-    svg += `<circle cx="${nd.x.toFixed(1)}" cy="${nd.y.toFixed(1)}" r="${nodeR}" fill="${nd.col}" fill-opacity="0.92" stroke="${C.paper}" stroke-width="3"/>`;
-  });
-  // feed nodes → rounded squares (same visual weight as circles)
-  const sq = nodeR * 2; // square side length
-  feedEntries.forEach(nd => {
-    svg += `<rect x="${(nd.x - nodeR).toFixed(1)}" y="${(nd.y - nodeR).toFixed(1)}" width="${sq}" height="${sq}" rx="4" ry="4" fill="${nd.col}" fill-opacity="0.92" stroke="${C.paper}" stroke-width="3"/>`;
-  });
-  // you node (drawn last among shapes, on top)
-  svg += `<circle cx="${cx}" cy="${cy}" r="30" fill="${C.ink}" stroke="${C.paper}" stroke-width="3"/>`;
-  svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="13" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">You</text>`;
-  // labels below all nodes — halo pass first, then ink text on top
-  allNodes.forEach(nd => {
-    const ly = (nd.y + nodeR + 15).toFixed(1);
-    const nm = escapeXml(nd.name);
-    svg += `<text x="${nd.x.toFixed(1)}" y="${ly}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" font-weight="600" fill="none" stroke="${C.paper}" stroke-width="3.5" stroke-linejoin="round">${nm}</text>`;
-    svg += `<text x="${nd.x.toFixed(1)}" y="${ly}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" font-weight="600" fill="${C.ink}">${nm}</text>`;
-  });
-  // footer
+  const n = personEntries.length;
   const feedEchoCount = feedEntries.filter(nd => nd.diff < 33).length;
   const feedTotal = feedEntries.length;
   let footerLine = `${mirrorCount} of ${n} close ${n === 1 ? 'tie' : 'ties'} mostly mirror your beliefs`;
   if (feedTotal > 0) footerLine += ` · ${feedEchoCount} of ${feedTotal} ${feedTotal === 1 ? 'feed' : 'feeds'} lean the same way`;
-  svg += `<text x="${cx}" y="${H - 32}" text-anchor="middle" font-size="12" fill="${C.mid}" font-family="system-ui, sans-serif">${footerLine}</text>`;
-  svg += `<text x="${cx}" y="${H - 14}" text-anchor="middle" font-size="10" fill="${C.light}" font-family="system-ui, sans-serif">matthewfacciani.github.io/network-diversity-audit</text>`;
-  svg += `</svg>`;
+  parts.push(`<text x="${cx}" y="${H - 34}" text-anchor="middle" font-size="12" fill="${C.mid}" font-family="system-ui, sans-serif">${footerLine}</text>`);
+  parts.push(`<text x="${cx}" y="${H - 16}" text-anchor="middle" font-size="10" fill="${C.light}" font-family="system-ui, sans-serif">matthewfacciani.github.io/network-diversity-audit</text>`);
+
+  const svg = `<svg id="net-viz" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
 
   document.getElementById('viz-area').innerHTML = `
     <div class="viz-wrap">${svg}</div>
-    <p class="viz-caption">Circles are people close to you; squares are your feeds. Both are placed by how much they echo your views — the closer to center, the more they align with what you already believe.</p>
+    <p class="viz-caption">Circles are people close to you; squares are your feeds. Left-to-right position shows how much each one echoes your views versus brings something different.</p>
     <div class="btn-row" style="margin-top:-6px;margin-bottom:20px;">
       <button class="btn btn-dark" onclick="downloadViz()">🖼️ Download image</button>
     </div>`;
