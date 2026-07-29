@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -387,10 +386,10 @@ function renderAlterCard(i) {
   div.innerHTML = `
     <div class="alter-header">
       <div class="alter-num">${i+1}</div>
-      <input class="alter-name-input" placeholder="First name or nickname…" value="${a.name || ''}" oninput="updateAlterName(${i}, this.value)" />
+      <input class="alter-name-input" placeholder="First name or nickname…" value="${escapeXml(a.name || '')}" oninput="updateAlterName(${i}, this.value)" />
     </div>
     <div class="alter-questions" id="alter-qs-${i}">
-      <p style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:12px;line-height:1.5;">Rate how similar <strong style="color:var(--ink-mid)">${a.name || 'this person'}'s</strong> beliefs are to yours:</p>
+      <p style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:12px;line-height:1.5;">Rate how similar <strong style="color:var(--ink-mid)">${escapeXml(a.name || 'this person')}'s</strong> beliefs are to yours:</p>
       ${DIMENSIONS.map(d => {
         const val = a[d.key] || 3;
         const labels = ['','Almost identical','Slightly different','Somewhat different','Noticeably different','Very different'];
@@ -461,7 +460,7 @@ function buildPanel2() {
     div.innerHTML = `
       <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:10px;">
         <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</span>
-        ${a.name}
+        ${escapeXml(a.name)}
       </div>
       ${DIMENSIONS.map(d => {
         const val = a[d.key] || 3;
@@ -512,7 +511,10 @@ function buildPanel3() {
         const card = document.getElementById('feed-card-' + p.id);
         if (card) card.remove();
       } else {
-        selectedPlatforms[p.id] = null;
+        // BUGFIX: the slider renders at 3 ("Sometimes"), so store 3 rather than null.
+        // Storing null meant an untouched platform was silently dropped from the
+        // score and drawn off-canvas in the shared image.
+        selectedPlatforms[p.id] = 3;
         c.classList.add('sel');
         renderFeedCard(p, area);
       }
@@ -535,7 +537,7 @@ function buildPanel3() {
     const pid = 'custom_' + v.toLowerCase().replace(/\W/g,'_');
     const p = {id: pid, name: v, icon: '📱'};
     PLATFORMS.push(p);
-    selectedPlatforms[pid] = null;
+    selectedPlatforms[pid] = 3; // BUGFIX: match the slider's rendered default
     const c = document.createElement('button');
     c.className = 'platform-chip sel';
     c.textContent = p.icon + ' ' + p.name;
@@ -579,7 +581,7 @@ function renderFeedCard(p, container) {
   div.innerHTML = `
     <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:10px;">
       <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${p.icon}</span>
-      ${p.name}
+      ${escapeXml(p.name)}
     </div>
     <div class="alter-q">
       <div class="alter-q-label">How often does this feed expose you to viewpoints that are different than your own? <span>— Think about what the algorithm shows you, not just who you follow.</span></div>
@@ -776,11 +778,16 @@ function renderVisualization(named, combined, level, color) {
   const C = { bg:'#f7f4ef', paper:'#fffdf9', ink:'#1c1917', mid:'#57534e', light:'#a8a29e', rule:'#e7e2db', echo:'#c2410c', amber:'#b45309', green:'#15803d', feed:'#334155' };
 
   const personEntries = named.map(a => ({ name: shortLabel(a.name), diff: personDiff(a), isPlatform: false }));
+  // BUGFIX: only include platforms that actually have a numeric rating. A platform
+  // that was selected but never dragged used to sit in selectedPlatforms as null,
+  // which made diff = -25 and pushed the node off the left edge of the canvas.
   const feedEntries = Object.entries(selectedPlatforms)
     .map(([pid, lvl]) => {
+      if (lvl === null || typeof lvl !== 'number' || !isFinite(lvl)) return null;
       const p = PLATFORMS.find(x => x.id === pid);
       if (!p) return null;
-      return { name: shortLabel(p.name.split('/')[0]), diff: (lvl - 1) / 4 * 100, isPlatform: true };
+      const clamped = Math.max(1, Math.min(5, lvl));
+      return { name: shortLabel(p.name.split('/')[0]), diff: (clamped - 1) / 4 * 100, isPlatform: true };
     })
     .filter(Boolean);
 
@@ -889,7 +896,10 @@ function renderVisualization(named, combined, level, color) {
   parts.push(`<text x="${cx}" y="${H - 34}" text-anchor="middle" font-size="12" fill="${C.mid}" font-family="system-ui, sans-serif">${footerLine}</text>`);
   parts.push(`<text x="${cx}" y="${H - 16}" text-anchor="middle" font-size="10" fill="${C.light}" font-family="system-ui, sans-serif">matthewfacciani.github.io/network-diversity-audit</text>`);
 
-  const svg = `<svg id="net-viz" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
+  // BUGFIX: width/height are required, not just viewBox. A viewBox-only SVG has no
+  // intrinsic size, and some browsers refuse to rasterize it into a canvas, which
+  // made "Download image" produce a blank or failed PNG.
+  const svg = `<svg id="net-viz" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
 
   document.getElementById('viz-area').innerHTML = `
     <div class="viz-wrap">${svg}</div>
@@ -924,10 +934,14 @@ function downloadViz() {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
     canvas.toBlob(blob => {
+      if (!blob) return;
+      const dl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = dl;
       a.download = 'my-network-diversity.png';
       a.click();
+      // BUGFIX: this URL was never released, so every download leaked a blob
+      setTimeout(() => URL.revokeObjectURL(dl), 5000);
     }, 'image/png');
   };
   img.onerror = () => URL.revokeObjectURL(url);
@@ -1025,6 +1039,11 @@ function goTo(n) {
 function restart() {
   alters = [];
   selectedPlatforms = {};
+  // BUGFIX: custom platforms were pushed onto PLATFORMS permanently, so they
+  // reappeared as stray chips after a restart
+  for (let i = PLATFORMS.length - 1; i >= 0; i--) {
+    if (PLATFORMS[i].id.startsWith('custom_')) PLATFORMS.splice(i, 1);
+  }
   selfEstimate = 50;
   lastResult = null;
   const gs = document.getElementById('guess-slider');
